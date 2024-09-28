@@ -4,6 +4,9 @@ from langgraph.graph.message import add_messages
 # Define the state object for the agent graph
 class AgentGraphState(TypedDict):
     research_question: str
+    team_information: str
+    grand_calendar_info: dict
+    workers_and_descriptions: list[dict]
     planner_response: Annotated[list, add_messages]
     selector_response: Annotated[list, add_messages]
     reporter_response: Annotated[list, add_messages]
@@ -13,6 +16,17 @@ class AgentGraphState(TypedDict):
     scraper_response: Annotated[list, add_messages]
     final_reports: Annotated[list, add_messages]
     end_chain: Annotated[list, add_messages]
+    decider_response: Annotated[list, add_messages]
+    basic_agent_response: Annotated[list, add_messages]
+    interpreter_response: Annotated[list, add_messages]
+    # interpretation_reviewer_response: Annotated[list, add_messages]
+    subtask_response: dict
+    team_member_assignment: dict
+    available_timings: dict
+    # delegation_reviewer_response: dict
+    # restructure_response: Annotated[list, add_messages]
+    # restructure_reviewer_response: Annotated[list, add_messages]
+    # end_node_response: Annotated[list, add_messages]
 
 # Define the nodes in the agent graph
 def get_agent_graph_state(state:AgentGraphState, state_key:str):
@@ -69,6 +83,9 @@ def get_agent_graph_state(state:AgentGraphState, state_key:str):
     
 state = {
     "research_question":"",
+    "team_information": "",
+    "grand_calendar_info": {},
+    "workers_and_descriptions": [],
     "planner_response": [],
     "selector_response": [],
     "reporter_response": [],
@@ -77,5 +94,11 @@ state = {
     "serper_response": [],
     "scraper_response": [],
     "final_reports": [],
+    "decider_response": [],
+    "basic_agent_response": [],
+    "interpreter_response": [],
+    "subtask_response": {},
+    "team_member_assignment": {},
+    "available_timings": {},
     "end_chain": []
 }

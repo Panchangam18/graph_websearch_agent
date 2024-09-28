@@ -13,10 +13,21 @@ from prompts.prompts import (
     selector_prompt_template,
     reporter_prompt_template,
     reviewer_prompt_template,
-    router_prompt_template
+    router_prompt_template,
+    basic_prompt_template,
+    decider_prompt_template,
+    interpreter_prompt_template,
+    interpretation_reviewer_prompt_template,
+    subtask_prompt_template,
+    delegation_reviewer_prompt_template,
+    restructure_prompt_template,
+    restructure_reviewer_prompt_template
 )
 from utils.helper_functions import get_current_utc_datetime, check_for_content
 from states.state import AgentGraphState
+from langchain.agents import AgentExecutor, create_openai_tools_agent
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from tools.agent_tools import add_event, delete_event, modify_event
 
 class Agent:
     def __init__(self, state: AgentGraphState, model=None, server=None, temperature=0, model_endpoint=None, stop=None, guided_json=None):
@@ -211,6 +222,125 @@ class FinalReportAgent(Agent):
         print(colored(f"Final Report 📝: {response}", 'blue'))
         self.update_state("final_reports", response)
         return self.state
+
+
+class DeciderAgent(Agent):
+    def invoke(self, user_prompt, prompt=decider_prompt_template):
+
+        decider_prompt = prompt.format()
+
+        message = [
+            {"role": "system", "content": decider_prompt},
+            {"role": "user", "content": user_prompt}
+        ]
+
+        llm = self.get_llm()
+        ai_msg = llm.invoke(message)
+        response = ai_msg.content
+
+        print(colored(f"Decider: {response}", 'blue'))
+        self.update_state("decider_response", response)
+        return self.state
+
+class BasicAgent(Agent):
+    def invoke(self, team_information, query, prompt=basic_prompt_template):
+        
+        basic_prompt = prompt.format(team_information=team_information)
+
+        print(basic_prompt)
+
+        prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                basic_prompt,
+            ),
+            MessagesPlaceholder(variable_name="messages"),
+            MessagesPlaceholder(variable_name="agent_scratchpad"),
+        ]
+    )
+
+        tools = [add_event, delete_event, modify_event]
+
+        llm = self.get_llm()
+
+        agent = create_openai_tools_agent(llm=llm, tools=tools, prompt=prompt)
+
+        executor = AgentExecutor(agent=agent, tools=tools)
+
+        output = executor.invoke({"messages": [("user", query)]})
+
+        response = output["output"]
+
+        self.update_state("basic_agent_response", response)
+
+        return self.state
+
+class InterpreterAgent(Agent):
+    def invoke(self, project_data, thing_to_do, prompt=interpreter_prompt_template):
+        
+        interpreter_prompt = prompt.format(project_data=project_data)
+
+        message = [
+            {"role": "system", "content": interpreter_prompt},
+            {"role": "user", "content": thing_to_do}
+        ]
+
+
+        llm = self.get_llm()
+        ai_msg = llm.invoke(message)
+        response = ai_msg.content
+
+        print(colored(f"Interpreter: {response}", 'blue'))
+        self.update_state("interpreter_response", response)
+        return self.state
+    
+class InterpretationReviewerAgent(Agent):
+    def invoke(self, information, thing_to_do, prompt=interpretation_reviewer_prompt_template):
+        
+        pass
+
+        return None
+
+class SubtaskAgent(Agent):
+    def invoke(self, thing_to_do, subtask_prompt=interpreter_prompt_template):
+        
+
+
+        message = [
+            {"role": "system", "content": subtask_prompt},
+            {"role": "user", "content": thing_to_do}
+        ]
+
+
+        llm = self.get_llm()
+        ai_msg = llm.invoke(message)
+        response = ai_msg.content
+
+        print(colored(f"Subtask: {response}", 'green'))
+        self.update_state("subtask_response", response)
+        return self.state
+    
+class DelegationReviewerAgent(Agent):
+    def invoke(self, information, thing_to_do, prompt=delegation_reviewer_prompt_template):
+        
+        pass
+
+        return None
+    
+class RestructureAgent(Agent):
+    def invoke(self, information, thing_to_do, prompt=restructure_prompt_template):
+        
+        pass
+
+        return None
+    
+class RestructureReviewerAgent(Agent):
+    def invoke(self, information, thing_to_do, prompt=restructure_reviewer_prompt_template):
+        
+        pass
+
+        return None
 
 class EndNodeAgent(Agent):
     def invoke(self):
